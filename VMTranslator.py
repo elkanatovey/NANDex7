@@ -8,13 +8,13 @@ import re
 from pathlib import Path
 from os import listdir
 
-
 NUMBER_OF_ARGS = 2
 
 INVALID_ARGS = "The file given as input is invalid..."
 VALID_INPUT_SUFFIX = ".*\.vm$"
 VM_SUFFIX = "\.vm$"
 ASSEMBLY_SUFFIX = ".asm"
+DIRECTORY_NAME = "\\\.*$"
 EMPTY_LINE = "^\s*$"
 COMMENT = "//.*$"
 
@@ -25,6 +25,8 @@ PROGRAM_FLOW_COMMAND = ["label", "goto", "if-goto"]
 FUNCTION_CALLING_COMMAND = ["function", "call", "return"]
 
 vm_suffix_pattern = re.compile(VALID_INPUT_SUFFIX)
+directory_pattern = re.compile(DIRECTORY_NAME)
+
 VALID_INPUT_SUFFIX = ".*\.vm$"
 COMPARISON_JUMP_COMMAND = {"gt": "JGT", "lt": "JLT", "eq": "JEQ"}
 COMPARISON_X_GT_Y = {"gt": "-1", "lt": "0"}
@@ -63,7 +65,8 @@ def file_output_path(file_path):
     if Path(file_path).is_file():
         return re.sub(VM_SUFFIX, ASSEMBLY_SUFFIX, file_path)
     else:
-        return file_path + ASSEMBLY_SUFFIX
+        temp_list = file_path.split("\\")
+        return file_path + temp_list[len(temp_list) - 2] +ASSEMBLY_SUFFIX
 
 
 def lines_list_to_file(file_path, lines_list):
