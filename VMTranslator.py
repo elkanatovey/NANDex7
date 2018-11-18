@@ -26,11 +26,15 @@ FUNCTION_CALLING_COMMAND = ["function", "call", "return"]
 
 vm_suffix_pattern = re.compile(VALID_INPUT_SUFFIX)
 VALID_INPUT_SUFFIX = ".*\.vm$"
-COMPARISON_JUMP_COMMAND = {"eq": "JEQ", "gt": "JGT", "lt": "JLT"}
+COMPARISON_JUMP_COMMAND = {"gt": "JGT", "lt": "JLT", "eq": "JEQ"}
+COMPARISON_X_GT_Y = {"gt": "-1", "lt": "0"}
+COMPARISON_Y_GT_X = {"gt": "0", "lt": "-1"}
 INCREMENT_STACK = ["@SP", "M = M + 1"]
 DECREMENT_STACK = ["@SP", "A = M - 1"]
 FINISH_LOCATION_ADVANCE = ["D=M+D", "A=D", "D=M"]
 FINISH_STACK_SET = ["@SP", "A=M", "M=D"]
+
+comparison_counter = 0
 
 def get_files(args):
     """
@@ -56,7 +60,10 @@ def file_output_path(file_path):
     :param file_path: The original file path
     :return: the path to the output file (.hack).
     """
-    return re.sub(VM_SUFFIX, ASSEMBLY_SUFFIX, file_path)
+    if Path(file_path).is_file():
+        return re.sub(VM_SUFFIX, ASSEMBLY_SUFFIX, file_path)
+    else:
+        return file_path + ASSEMBLY_SUFFIX
 
 
 def lines_list_to_file(file_path, lines_list):
@@ -78,16 +85,13 @@ def file_to_assembly_lines(file_path):
     """
     result = []
     with open(file_path, "r") as input_file:
-        comparison_counter = 0
         for line in input_file:
             line = re.sub(COMMENT, "", line)
             line_as_list = line.split()
             if len(line_as_list) > 0:
                 print(line_as_list)  # for testing.
                 if line_as_list[0] in ARITHMETIC_COMMAND:
-                    temp_result, comparison_counter = \
-                        get_arithmetic_command_lines(line_as_list[0],
-                                                     comparison_counter)
+                    temp_result = get_arithmetic_command_lines(line_as_list[0])
                     result += temp_result
                 elif line_as_list[0] in MEMORY_ACCESS_COMMAND:
                     result += get_memory_command_lines(line_as_list[0],
@@ -101,7 +105,11 @@ def file_to_assembly_lines(file_path):
     return result
 
 
-def get_arithmetic_command_lines(command, comparison_counter):
+def get_arithmetic_command_lines(command):
+    """
+    :param command: arithmetic vm command
+    :return: Hack assembly language equivalent.
+    """
     if command == "add":
         return ["//add:",
                 "@SP",
@@ -110,7 +118,7 @@ def get_arithmetic_command_lines(command, comparison_counter):
                 "@SP",
                 "M = M - 1",
                 "A = M - 1",
-                "M = M + D"], comparison_counter
+                "M = M + D"]
     if command == "sub":
         return ["//sub:",
                 "@SP",
@@ -119,31 +127,70 @@ def get_arithmetic_command_lines(command, comparison_counter):
                 "@SP",
                 "M = M - 1",
                 "A = M - 1",
-                "M = M - D"], comparison_counter
+                "M = M - D"]
     if command == "neg":
         return ["//neg:",
                 "@SP",
                 "A = M - 1",
-                "M = -M"], comparison_counter
+                "M = -M"]
     if command in COMPARISON_JUMP_COMMAND.keys():
+        global comparison_counter
         comparison_counter += 1
-        return ["//" + command + ":",
-                "@SP",
-                "A = M - 1",
-                "D = M // D=y",
-                "@SP",
-                "M = M - 1",
-                "A = M - 1",
-                "D = M - D // D=x-y",
-                "@" + str(comparison_counter) + "COMPARISON",
-                "D;" + COMPARISON_JUMP_COMMAND[command],
-                "M = 0",
-                "@" + str(comparison_counter) + "COMPARISON_END",
-                "0;JMP",
-                "(" + str(comparison_counter) + "COMPARISON)",
-                "M = -1",
-                "(" + str(comparison_counter) + "COMPARISON_END)"], \
-               comparison_counter
+        if command == "eq":
+            return ["//eq:",
+                    "@SP",
+                    "A = M - 1",
+                    "D = M // D=y",
+                    "@SP",
+                    "M = M - 1",
+                    "A = M - 1",
+                    "D = M - D // D=x-y",
+                    "@" + str(comparison_counter) + "COMPARISON_TRUE",
+                    "D;JEQ",
+                    "M = 0 // false",
+                    "@" + str(comparison_counter) + "COMPARISON_END",
+                    "0;JMP",
+                    "(" + str(comparison_counter) + "COMPARISON_TRUE)",
+                    "M = -1 // true",
+                    "(" + str(comparison_counter) + "COMPARISON_END)"]
+        else:
+            return ["//" + command + ":",
+                    "@SP",
+                    "A = M - 1",
+                    "D = M // D=y",
+                    "@" + str(comparison_counter) + "COMPARISON_Y>=0",
+                    "D;JGE // if y>=0",
+                    "//y<0",
+                    "@SP",
+                    "M = M - 1",
+                    "A = M - 1",
+                    "@" + str(comparison_counter) + "COMPARISON_SAME_SYMBOL",
+                    "M;JLT // if x<0",
+                    "//y<0, x>=0",
+                    "M =" + COMPARISON_X_GT_Y[command],
+                    "@" + str(comparison_counter) + "COMPARISON_END",
+                    "0;JMP",
+                    "(" + str(comparison_counter) + "COMPARISON_Y>=0)",
+                    "//y>=0",
+                    "@SP",
+                    "M = M - 1",
+                    "A = M - 1",
+                    "@" + str(comparison_counter) + "COMPARISON_SAME_SYMBOL",
+                    "M;JGE // if x>=0",
+                    "//y>=0, x<0",
+                    "M =" + COMPARISON_Y_GT_X[command],
+                    "@" + str(comparison_counter) + "COMPARISON_END",
+                    "0;JMP",
+                    "(" + str(comparison_counter) + "COMPARISON_SAME_SYMBOL)",
+                    "D = M - D // D=x-y"
+                    "@" + str(comparison_counter) + "COMPARISON_TRUE",
+                    "D;" + COMPARISON_JUMP_COMMAND[command],
+                    "M = 0 // false",
+                    "@" + str(comparison_counter) + "COMPARISON_END",
+                    "0;JMP",
+                    "(" + str(comparison_counter) + "COMPARISON_TRUE)",
+                    "M = -1 // true",
+                    "(" + str(comparison_counter) + "COMPARISON_END)"]
     if command == "and":
         return ["//and:",
                 "@SP",
@@ -152,7 +199,7 @@ def get_arithmetic_command_lines(command, comparison_counter):
                 "@SP",
                 "M = M - 1",
                 "A = M - 1",
-                "M = D&M"], comparison_counter
+                "M = D&M"]
     if command == "or":
         return ["//or:",
                 "@SP",
@@ -161,12 +208,12 @@ def get_arithmetic_command_lines(command, comparison_counter):
                 "@SP",
                 "M = M - 1",
                 "A = M - 1",
-                "M = D|M"], comparison_counter
+                "M = D|M"]
     if command == "not":
         return ["//not:",
                 "@SP",
                 "A = M - 1",
-                "M = !M"], comparison_counter
+                "M = !M"]
 
 
 def realign_memory_pointer(index):
@@ -218,7 +265,7 @@ def push_cases(segment, index, file_name):
 
 def direct_mappings(index, map_type):
     index_point = realign_memory_pointer(index)
-    mapped_list = ["@R15", "M=D"] + index_point + map_type + ["D=M+D",
+    mapped_list = ["@R15", "M=D"] + index_point + [map_type] + ["D=M+D",
                 "@R14", "M=D", "@R15", "D=M", "@R14", "A=M", "M=D"]
     return mapped_list
 
@@ -267,8 +314,9 @@ def get_memory_command_lines(command, segment, index, file_name):
 
 # The main program:
 if __name__ == "__main__":
+    comparison_counter = 0
     list_of_files_path = get_files(sys.argv)
     assembly_lines_list = []
     for file_path in list_of_files_path:
-        assembly_lines_list = file_to_assembly_lines(file_path)
-        lines_list_to_file(file_output_path(file_path), assembly_lines_list)
+        assembly_lines_list += file_to_assembly_lines(file_path)
+    lines_list_to_file(file_output_path(sys.argv[1]), assembly_lines_list)
