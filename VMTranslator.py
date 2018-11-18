@@ -215,15 +215,54 @@ def push_cases(segment, index, file_name):
                           INCREMENT_STACK
     return instructions_to_add
 
-def pop_cases(segment, index):
-    pass
+
+def direct_mappings(index, map_type):
+    index_point = realign_memory_pointer(index)
+    mapped_list = ["@R15", "M=D"] + index_point + map_type + ["D=M+D",
+                "@R14", "M=D", "@R15", "D=M", "@R14", "A=M", "M=D"]
+    return mapped_list
+
+
+def pop_cases(segment, index, file_name):
+    return_list = DECREMENT_STACK + ["A=M", "D=M"]
+    if segment == "argument":
+        return_list = return_list + direct_mappings(index, "@ARG")
+        return return_list
+    elif segment == "local":
+        return_list = return_list + direct_mappings(index, "@LCL")
+        return return_list
+    elif segment == "static":
+        file_name = file_name.replace(".vm", "." + index)
+        name = file_name.split("/")
+        file_name = "@"+name[len(name)-1]
+        return_list = return_list + file_name + ["M=D"]
+        return return_list
+    elif segment == "this":
+        return_list = return_list + direct_mappings(index, "@THIS")
+        return return_list
+    elif segment == "that":
+        return_list = return_list + direct_mappings(index, "@THAT")
+        return return_list
+    elif segment == "pointer":
+        segment_type = "@THAT"
+        if index == '0':
+            segment_type = "@THIS"
+        return_list = return_list + [segment_type, "M=D"]
+        return return_list
+    elif segment == "temp":
+        segment_type = "@R5"
+        index_to_add = realign_memory_pointer(index)
+        return_list = return_list + ["@R15", "M=D"]+index_to_add +[
+            segment_type, "D=D+A", "@R14", "M=D", "@R15", "D=M", "@R14",
+            "A=M", "M=D"]
+        return return_list
 
 
 def get_memory_command_lines(command, segment, index, file_name):
     if command == "push":
         return push_cases(segment, index, file_name)
     elif command == "pop":
-        return pop_cases(segment, index)
+        return pop_cases(segment, index, file_name)
 
 
 # The main program:
