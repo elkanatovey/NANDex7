@@ -25,43 +25,12 @@ PROGRAM_FLOW_COMMAND = ["label", "goto", "if-goto"]
 FUNCTION_CALLING_COMMAND = ["function", "call", "return"]
 
 vm_suffix_pattern = re.compile(VALID_INPUT_SUFFIX)
-
-
-def get_files(args):
-    """
-    :param args: the arguments given to the program.
-    :return: the list of paths to .vm files
-    """
-    list_of_files_path = []
-    if len(args) == NUMBER_OF_ARGS:
-##############################################################################
-# FILE : VMTranslatorpy
-# WRITER : Aviad Dudkewitz, Elkana Tovey
-# DESCRIPTION: This program translate VM code to Hack assembly language.
-##############################################################################
-import sys
-import re
-from pathlib import Path
-from os import listdir
-
-NUMBER_OF_ARGS = 2
-
-INVALID_ARGS = "The file given as input is invalid..."
 VALID_INPUT_SUFFIX = ".*\.vm$"
-VM_SUFFIX = "\.vm$"
-ASSEMBLY_SUFFIX = ".asm"
-EMPTY_LINE = "^\s*$"
-COMMENT = "//.*$"
-
-ARITHMETIC_COMMAND = ["add", "sub", "neg", "eq", "gt", "lt", "and", "or",
-                      "not"]
-MEMORY_ACCESS_COMMAND = ["push", "pop"]
-PROGRAM_FLOW_COMMAND = ["label", "goto", "if-goto"]
-FUNCTION_CALLING_COMMAND = ["function", "call", "return"]
 COMPARISON_JUMP_COMMAND = {"eq": "JEQ", "gt": "JGT", "lt": "JLT"}
-
-vm_suffix_pattern = re.compile(VALID_INPUT_SUFFIX)
-
+INCREMENT_STACK = ["A = M + 1"]  # used with finish location advance
+DECREMENT_STACK = ["@SP", "A = M - 1"]
+FINISH_LOCATION_ADVANCE = ["D=M+D", "A=D", "D=A"]
+FINISH_STACK_SET = ["@SP", "M=D"]
 
 def get_files(args):
     """
@@ -123,7 +92,8 @@ def file_to_assembly_lines(file_path):
                 elif line_as_list[0] in MEMORY_ACCESS_COMMAND:
                     result += get_memory_command_lines(line_as_list[0],
                                                        line_as_list[1],
-                                                       line_as_list[2])
+                                                       line_as_list[2],
+                                                       file_path)
                 elif line_as_list[0] in PROGRAM_FLOW_COMMAND:
                     pass  # for project 8
                 elif line_as_list[0] in FUNCTION_CALLING_COMMAND:
@@ -199,11 +169,61 @@ def get_arithmetic_command_lines(command, comparison_counter):
                 "M = !M"], comparison_counter
 
 
-def get_memory_command_lines(command, segment, index):
+def realign_memory_pointer(index):
+    pointer_alignment = ["@"+index, "D=A"]
+    return pointer_alignment
+
+
+def push_cases(segment, index, file_name):
+    instructions_to_add = realign_memory_pointer(index)
+    segment_type = ""
+    if segment == "argument":
+        segment_type = "@ARG"
+    elif segment == "local":
+        segment_type = "@LCL"
+    elif segment == "static":
+        file_name = file_name.replace(".vm", ".index")
+        name = file_name.split("/")
+        file_name = name[len(name)-1]
+        instructions_to_add = ["@"+file_name] + ["D=M"] + FINISH_STACK_SET + \
+                              INCREMENT_STACK
+        return instructions_to_add
+    elif segment == "this":
+        segment_type = "@THIS"
+    elif segment == "that":
+        segment_type = "@THAT"
+    elif segment == "constant":
+        instructions_to_add[1] = "D=M"
+        instructions_to_add = instructions_to_add + FINISH_STACK_SET \
+                              + INCREMENT_STACK
+        return instructions_to_add
+    elif segment == "pointer":
+        segment_type = "THAT"
+        if index == '0':
+            segment_type = "@THIS"
+        instructions_to_add = [segment_type, "D=M"] + FINISH_STACK_SET +\
+                                  INCREMENT_STACK
+        return instructions_to_add
+    elif segment == "temp":
+        segment_type = "@R5"
+        instructions_to_add = instructions_to_add + [segment_type,"D=A+D",
+                                                     "A=D", "D=A"] + \
+                              FINISH_STACK_SET + INCREMENT_STACK
+        return instructions_to_add
+    instructions_to_add = instructions_to_add + [segment_type] +\
+                        FINISH_LOCATION_ADVANCE + FINISH_STACK_SET +\
+                          INCREMENT_STACK
+    return instructions_to_add
+
+def pop_cases(segment, index):
+    pass
+
+
+def get_memory_command_lines(command, segment, index, file_name):
     if command == "push":
-        return []
+        return push_cases(segment, index, file_name)
     elif command == "pop":
-        return []
+        return pop_cases(segment, index)
 
 
 # The main program:
