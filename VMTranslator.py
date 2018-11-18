@@ -1,6 +1,6 @@
 ##############################################################################
 # FILE : VMTranslatorpy
-# WRITER : Aviad Dudkewitz, Elkana Tovey
+# WRITER : Aviad Dudkewitz, Alkana Tovey
 # DESCRIPTION: This program translate VM code to Hack assembly language.
 ##############################################################################
 import sys
