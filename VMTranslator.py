@@ -27,10 +27,10 @@ FUNCTION_CALLING_COMMAND = ["function", "call", "return"]
 vm_suffix_pattern = re.compile(VALID_INPUT_SUFFIX)
 VALID_INPUT_SUFFIX = ".*\.vm$"
 COMPARISON_JUMP_COMMAND = {"eq": "JEQ", "gt": "JGT", "lt": "JLT"}
-INCREMENT_STACK = ["A = M + 1"]  # used with finish location advance
+INCREMENT_STACK = ["@SP", "M = M + 1"]
 DECREMENT_STACK = ["@SP", "A = M - 1"]
-FINISH_LOCATION_ADVANCE = ["D=M+D", "A=D", "D=A"]
-FINISH_STACK_SET = ["@SP", "M=D"]
+FINISH_LOCATION_ADVANCE = ["D=M+D", "A=D", "D=M"]
+FINISH_STACK_SET = ["@SP", "A=M", "M=D"]
 
 def get_files(args):
     """
@@ -182,10 +182,10 @@ def push_cases(segment, index, file_name):
     elif segment == "local":
         segment_type = "@LCL"
     elif segment == "static":
-        file_name = file_name.replace(".vm", ".index")
+        file_name = file_name.replace(".vm", "." + index)
         name = file_name.split("/")
-        file_name = name[len(name)-1]
-        instructions_to_add = ["@"+file_name] + ["D=M"] + FINISH_STACK_SET + \
+        file_name = "@"+name[len(name)-1]
+        instructions_to_add = [file_name] + ["D=M"] + FINISH_STACK_SET + \
                               INCREMENT_STACK
         return instructions_to_add
     elif segment == "this":
@@ -193,21 +193,21 @@ def push_cases(segment, index, file_name):
     elif segment == "that":
         segment_type = "@THAT"
     elif segment == "constant":
-        instructions_to_add[1] = "D=M"
+        instructions_to_add[1] = "D=A"
         instructions_to_add = instructions_to_add + FINISH_STACK_SET \
                               + INCREMENT_STACK
         return instructions_to_add
     elif segment == "pointer":
-        segment_type = "THAT"
+        segment_type = "@THAT"
         if index == '0':
             segment_type = "@THIS"
-        instructions_to_add = [segment_type, "D=M"] + FINISH_STACK_SET +\
+        instructions_to_add = [segment_type, "D=M", "@SP", "A=M", "M=D"] +\
                                   INCREMENT_STACK
         return instructions_to_add
     elif segment == "temp":
         segment_type = "@R5"
         instructions_to_add = instructions_to_add + [segment_type,"D=A+D",
-                                                     "A=D", "D=A"] + \
+                                                     "A=D", "D=M"] + \
                               FINISH_STACK_SET + INCREMENT_STACK
         return instructions_to_add
     instructions_to_add = instructions_to_add + [segment_type] +\
