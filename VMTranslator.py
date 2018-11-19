@@ -151,10 +151,14 @@ def get_arithmetic_command_lines(command):
                     "D = M - D // D=x-y",
                     "@" + str(comparison_counter) + "COMPARISON_TRUE",
                     "D;JEQ",
+                    "@SP",
+                    "A=M-1",
                     "M = 0 // false",
                     "@" + str(comparison_counter) + "COMPARISON_END",
                     "0;JMP",
                     "(" + str(comparison_counter) + "COMPARISON_TRUE)",
+                    "@SP",
+                    "A=M-1",
                     "M = -1 // true",
                     "(" + str(comparison_counter) + "COMPARISON_END)"]
         else:
