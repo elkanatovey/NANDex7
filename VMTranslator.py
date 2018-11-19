@@ -225,11 +225,23 @@ def get_arithmetic_command_lines(command):
 
 
 def realign_memory_pointer(index):
+    """
+    helper function for psuhes
+    :param index: push index
+    :return: instruction list
+    """
     pointer_alignment = ["@"+index, "D=A"]
     return pointer_alignment
 
 
 def push_cases(segment, index, file_name):
+    """
+    write push instructions
+    :param segment: type of push
+    :param index: index of type
+    :param file_name: the current file name
+    :return: list of instructions
+    """
     instructions_to_add = realign_memory_pointer(index)
     segment_type = ""
     if segment == "argument":
@@ -272,6 +284,12 @@ def push_cases(segment, index, file_name):
 
 
 def direct_mappings(index, map_type):
+    """
+    helper for pops
+    :param index: pop index
+    :param map_type: segment type
+    :return: instruction list
+    """
     index_point = realign_memory_pointer(index)
     mapped_list = ["@R15", "M=D"] + index_point + [map_type] + ["D=M+D",
                 "@R14", "M=D", "@R15", "D=M", "@R14", "A=M", "M=D"]
@@ -279,6 +297,13 @@ def direct_mappings(index, map_type):
 
 
 def pop_cases(segment, index, file_name):
+    """
+    writes pop instructions
+    :param segment: segmentwhich to pop
+    :param index: index of segment
+    :param file_name: current file name
+    :return: instruction list
+    """
     return_list = DECREMENT_STACK + ["A=M", "D=M"]
     if segment == "argument":
         return_list = return_list + direct_mappings(index, "@ARG")
@@ -314,6 +339,14 @@ def pop_cases(segment, index, file_name):
 
 
 def get_memory_command_lines(command, segment, index, file_name):
+    """
+    stack manager
+    :param command: push/pop
+    :param segment: segment to perform on
+    :param index: current index
+    :param file_name: obvious
+    :return:
+    """
     if command == "push":
         return push_cases(segment, index, file_name)
     elif command == "pop":
