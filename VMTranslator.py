@@ -32,7 +32,7 @@ COMPARISON_JUMP_COMMAND = {"gt": "JGT", "lt": "JLT", "eq": "JEQ"}
 COMPARISON_X_GT_Y = {"gt": "-1", "lt": "0"}
 COMPARISON_Y_GT_X = {"gt": "0", "lt": "-1"}
 INCREMENT_STACK = ["@SP", "M = M + 1"]
-DECREMENT_STACK = ["@SP", "A = M - 1"]
+DECREMENT_STACK = ["@SP", "M=M-1"]
 FINISH_LOCATION_ADVANCE = ["D=M+D", "A=D", "D=M"]
 FINISH_STACK_SET = ["@SP", "A=M", "M=D"]
 
