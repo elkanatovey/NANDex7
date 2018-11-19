@@ -38,6 +38,7 @@ FINISH_STACK_SET = ["@SP", "A=M", "M=D"]
 
 comparison_counter = 0
 
+
 def get_files(args):
     """
     :param args: the arguments given to the program.
@@ -65,8 +66,8 @@ def file_output_path(file_path):
     if Path(file_path).is_file():
         return re.sub(VM_SUFFIX, ASSEMBLY_SUFFIX, file_path)
     else:
-        temp_list = file_path.split("\\")
-        return file_path + temp_list[len(temp_list) - 2] +ASSEMBLY_SUFFIX
+        temp_list = file_path.split("/")
+        return file_path +"/"+ temp_list[len(temp_list) - 1] + ASSEMBLY_SUFFIX
 
 
 def lines_list_to_file(file_path, lines_list):
@@ -161,7 +162,7 @@ def get_arithmetic_command_lines(command):
                     "@SP",
                     "A = M - 1",
                     "D = M // D=y",
-                    "@" + str(comparison_counter) + "COMPARISON_Y>=0",
+                    "@" + str(comparison_counter) + "COMPARISON_YGT0",
                     "D;JGE // if y>=0",
                     "//y<0",
                     "@SP",
@@ -173,7 +174,7 @@ def get_arithmetic_command_lines(command):
                     "M =" + COMPARISON_X_GT_Y[command],
                     "@" + str(comparison_counter) + "COMPARISON_END",
                     "0;JMP",
-                    "(" + str(comparison_counter) + "COMPARISON_Y>=0)",
+                    "(" + str(comparison_counter) + "COMPARISON_YGT0)",
                     "//y>=0",
                     "@SP",
                     "M = M - 1",
