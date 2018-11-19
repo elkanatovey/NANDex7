@@ -167,6 +167,7 @@ def get_arithmetic_command_lines(command):
                     "A = M - 1",
                     "D = M // D=y",
                     "@" + str(comparison_counter) + "COMPARISON_YGT0",
+                    #  gt is greater than
                     "D;JGE // if y>=0",
                     "//y<0",
                     "@SP",
@@ -193,10 +194,14 @@ def get_arithmetic_command_lines(command):
                     "D = M - D // D=x-y"
                     "@" + str(comparison_counter) + "COMPARISON_TRUE",
                     "D;" + COMPARISON_JUMP_COMMAND[command],
+                    "@SP",
+                    "A=M-1",
                     "M = 0 // false",
                     "@" + str(comparison_counter) + "COMPARISON_END",
                     "0;JMP",
                     "(" + str(comparison_counter) + "COMPARISON_TRUE)",
+                    "@SP",
+                    "A=M-1",
                     "M = -1 // true",
                     "(" + str(comparison_counter) + "COMPARISON_END)"]
     if command == "and":
@@ -315,7 +320,7 @@ def pop_cases(segment, index, file_name):
         file_name = file_name.replace(".vm", "." + index)
         name = file_name.split("/")
         file_name = "@"+name[len(name)-1]
-        return_list = return_list + file_name + ["M=D"]
+        return_list = return_list + [file_name] + ["M=D"]
         return return_list
     elif segment == "this":
         return_list = return_list + direct_mappings(index, "@THIS")
